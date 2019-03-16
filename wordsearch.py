@@ -19,20 +19,9 @@ def main():
     logging.basicConfig(stream=sys.stdout)
     logger = logging.getLogger()
 
-    # Grab CLI arguments
-    opt_parser = OptionParser()
-    opt_parser.add_option('--dictionary', dest='dictionary_file',
-                          help='File containing dictionary words')
-    opt_parser.add_option('--width', dest='board_width', type='int',
-                          help='The width of the word search board, in characters.')
-    opt_parser.add_option('--height', dest='board_height', type='int',
-                          help='The height of the word search board, in characters.')
-    opt_parser.add_option('--debug', dest='debug', action="store_true",
-                          help='Enable debug logging')
-
-    (options, args) = opt_parser.parse_args()
-    if options.debug:
-        logger.setLevel(logging.DEBUG)
+    options = process_cli(logger)
+    if options is None:
+        exit(1)
 
     # Load in the dictionary
     dictionary = []
@@ -48,25 +37,55 @@ def main():
     logger.debug('Generated Game Board')
     logger.debug('====================')
     logger.debug(game_board)
-    # logger.debug(game_board.diag_down_right)
-    # logger.debug(game_board.diag_down_left)
-    # logger.debug(game_board.rows)
-    # logger.debug(game_board.rows_reversed)
-    # logger.debug(game_board.columns)
-    # logger.debug(game_board.columns_reversed)
 
     # Search the board
-    results = []
-    for word in dictionary:        
-        if game_board.search(word) is True:
-            results.append(word)
+    results = game_board.search(word_list=dictionary)
 
     # Print results
     print('====================')
     print('      RESULTS       ')
     print('====================')
-    for word in results:
-        print(word)
+    print(f'Total words found: {len(results)}')
+    grid_width = 6
+    for i in range(0, len(results), grid_width):
+        sublist = results[i:i+grid_width]
+        print(''.join(f'{x:<10}' for x in sublist))
+
+    print(f'Board creation time: {game_board.gen_time:.5f} seconds')
+    print(f'Board search time: {game_board.search_time:.5f} seconds')
+
+
+def process_cli(logger):
+    # Grab CLI arguments
+    opt_parser = OptionParser()
+    opt_parser.add_option('--dictionary', dest='dictionary_file',
+                          help='File containing dictionary words')
+    opt_parser.add_option('--width', dest='board_width', type='int',
+                          help='The width of the word search board, in characters.')
+    opt_parser.add_option('--height', dest='board_height', type='int',
+                          help='The height of the word search board, in characters.')
+    opt_parser.add_option('--debug', dest='debug', action="store_true",
+                          help='Enable debug logging')
+
+    (options, args) = opt_parser.parse_args()
+    if options.debug:
+        logger.setLevel(logging.DEBUG)
+
+    # If there aren't enough arguments, print help
+    if len(sys.argv) == 1:  # if only 1 argument, it's the script name
+        opt_parser.print_help()
+        exit()
+
+    if not options.dictionary_file:
+        opt_parser.error('--dictionary argument is required')
+
+    if not options.board_width:
+        opt_parser.error('--width argument is required')
+
+    if not options.board_height:
+        opt_parser.error('--height argument is required')
+
+    return options
 
 
 if __name__ == '__main__':
